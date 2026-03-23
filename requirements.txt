@@ -1,0 +1,8 @@
+flask
+flask-login
+flask-bcrypt
+numpy
+pandas
+scikit-learn
+joblib
+gunicorn

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Fraud Dashboard</title>
+
+<style>
+body {
+    background:#0a0f1c;
+    color:white;
+    font-family:Arial;
+}
+
+.nav {
+    background:#111827;
+    padding:15px;
+    display:flex;
+    justify-content:space-between;
+}
+
+.card {
+    background:#1f2937;
+    padding:20px;
+    margin:20px;
+    border-radius:10px;
+}
+
+button {
+    background:#6366f1;
+    color:white;
+    padding:10px;
+    border:none;
+    border-radius:8px;
+}
+
+input {
+    padding:10px;
+    margin:5px;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="nav">
+    <h3>💳 Fraud Detection</h3>
+    <a href="/logout"><button>Logout</button></a>
+</div>
+
+<div class="card">
+    <h3>Real-Time Detection</h3>
+
+    <input id="amount" placeholder="Amount">
+    <input id="time" placeholder="Time">
+
+    <button onclick="predict()">Detect</button>
+
+    <p id="result"></p>
+</div>
+
+<script>
+function predict() {
+    fetch('/api/predict', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            amount: document.getElementById("amount").value,
+            time: document.getElementById("time").value
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("result").innerText =
+            data.fraud ? "🚨 Fraud Detected" : "✅ Safe";
+    });
+}
+</script>
+
+</body>
+</html>
