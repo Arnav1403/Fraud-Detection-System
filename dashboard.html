@@ -1,64 +1,180 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
 <title>Fraud Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
 
 <style>
 body {
-    background:#0a0f1c;
-    color:white;
-    font-family:Arial;
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: #0f172a;
+    color: white;
 }
 
-.nav {
-    background:#111827;
-    padding:15px;
-    display:flex;
-    justify-content:space-between;
+/* Sidebar */
+.sidebar {
+    width: 220px;
+    height: 100vh;
+    position: fixed;
+    background: #020617;
+    padding: 20px;
+}
+
+.sidebar h2 {
+    color: #38bdf8;
+}
+
+.sidebar a {
+    display: block;
+    margin: 15px 0;
+    color: #94a3b8;
+    text-decoration: none;
+}
+
+.sidebar a:hover {
+    color: white;
+}
+
+/* Main */
+.main {
+    margin-left: 240px;
+    padding: 20px;
+}
+
+/* Cards */
+.cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
 }
 
 .card {
-    background:#1f2937;
-    padding:20px;
-    margin:20px;
-    border-radius:10px;
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    transition: 0.3s;
+}
+
+.card:hover {
+    transform: scale(1.05);
+}
+
+/* Form */
+.form-box {
+    margin-top: 20px;
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+input, button {
+    padding: 10px;
+    margin: 5px;
 }
 
 button {
-    background:#6366f1;
-    color:white;
-    padding:10px;
-    border:none;
-    border-radius:8px;
+    background: #6366f1;
+    color: white;
+    border: none;
 }
 
-input {
-    padding:10px;
-    margin:5px;
+/* Table */
+table {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+}
+
+td, th {
+    padding: 10px;
+    border-bottom: 1px solid #334155;
+}
+
+/* Animation */
+.flash {
+    animation: flash 0.5s infinite alternate;
+}
+
+@keyframes flash {
+    from { background: #1e293b; }
+    to { background: red; }
 }
 </style>
-
 </head>
 
 <body>
 
-<div class="nav">
-    <h3>💳 Fraud Detection</h3>
-    <a href="/logout"><button>Logout</button></a>
+<!-- Sidebar -->
+<div class="sidebar">
+    <h2>💳 FraudSys</h2>
+    <a href="#">Dashboard</a>
+    <a href="#">Analytics</a>
+    <a href="#">Transactions</a>
+    <a href="/logout">Logout</a>
 </div>
 
-<div class="card">
-    <h3>Real-Time Detection</h3>
+<!-- Main -->
+<div class="main">
 
-    <input id="amount" placeholder="Amount">
-    <input id="time" placeholder="Time">
+    <!-- Cards -->
+    <div class="cards">
+        <div class="card">Total: <span id="total">0</span></div>
+        <div class="card">Fraud: <span id="fraud">0</span></div>
+        <div class="card">Safe: <span id="safe">0</span></div>
+    </div>
 
-    <button onclick="predict()">Detect</button>
+    <!-- Chart -->
+    <canvas id="chart" height="100"></canvas>
 
-    <p id="result"></p>
+    <!-- Form -->
+    <div class="form-box">
+        <h3>Real-Time Detection</h3>
+        <input id="amount" placeholder="Amount">
+        <input id="time" placeholder="Time">
+        <button onclick="predict()">Check</button>
+        <p id="result"></p>
+    </div>
+
+    <!-- Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>Amount</th>
+                <th>Time</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
 </div>
+
+<!-- Siren Sound -->
+<audio id="alarm" src="https://www.soundjay.com/misc/sounds/alarm.wav"></audio>
 
 <script>
+let total = 0, fraud = 0, safe = 0;
+
+// Chart
+const ctx = document.getElementById('chart');
+const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: ['Fraud', 'Safe'],
+        datasets: [{
+            label: 'Transactions',
+            data: [0, 0]
+        }]
+    }
+});
+
 function predict() {
     fetch('/api/predict', {
         method: 'POST',
@@ -70,8 +186,40 @@ function predict() {
     })
     .then(res => res.json())
     .then(data => {
-        document.getElementById("result").innerText =
-            data.fraud ? "🚨 Fraud Detected" : "✅ Safe";
+
+        total++;
+
+        let status = data.fraud ? "Fraud 🚨" : "Safe ✅";
+
+        if (data.fraud) {
+            fraud++;
+            document.body.classList.add("flash");
+            document.getElementById("alarm").play();
+        } else {
+            safe++;
+        }
+
+        // Update cards
+        document.getElementById("total").innerText = total;
+        document.getElementById("fraud").innerText = fraud;
+        document.getElementById("safe").innerText = safe;
+
+        // Update chart
+        chart.data.datasets[0].data = [fraud, safe];
+        chart.update();
+
+        // Update table
+        let row = `<tr>
+            <td>${document.getElementById("amount").value}</td>
+            <td>${document.getElementById("time").value}</td>
+            <td>${status}</td>
+        </tr>`;
+
+        document.getElementById("tableBody").innerHTML += row;
+
+        document.getElementById("result").innerText = status;
+
+        setTimeout(() => document.body.classList.remove("flash"), 1000);
     });
 }
 </script>
